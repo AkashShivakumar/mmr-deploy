@@ -1,0 +1,49 @@
+---
+  - name: Get stuff from git
+    git:
+      repo: git@github.com:PearlThoughts/mmr-sales-splash.git
+      dest: /home/vagrant/MMR
+      version: master
+      accept_hostkey: yes
+      key_file: /home/vagrant/.ssh/id_rsa
+      force: yes
+    become_user: vagrant
+    delegate_to: localhost
+
+  # - name: Clean-up nodemodules directory - (local control server)
+  #   file:
+  #     path: "{{ project_root_dir }}/node_modules"
+  #     state: absent
+  #   delegate_to: localhost
+
+  
+  - name: Install packages based on package.json.   
+    npm:     
+     path: "{{ project_root_dir }}"
+    delegate_to: localhost
+  
+
+  - name: Npm build - (local control server)
+    shell: npm build
+    args:
+      chdir: "{{ project_root_dir }}"
+    delegate_to: localhost
+
+  - name: ansible create directory example
+    file:
+      path: /srv/sales-build
+      state: directory
+
+  - name: Copy Public.zip (local control to host server)
+    ansible.posix.synchronize:
+     src: "{{ project_root_dir }}/public.zip"
+     dest: /srv/sales-build
+  
+  - name: install unzip package
+    apt: name=unzip state=present force_apt_get=yes
+  
+  - name: Unarchive a file that is already on the remote machine
+    unarchive:
+      src: /srv/sales-build/public.zip
+      dest: /srv/sales-build
+      remote_src: yes
